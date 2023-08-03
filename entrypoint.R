@@ -14,62 +14,20 @@ doc <- "
 
 opt <- docopt::docopt(doc)
 
+iso_dir <- Sys.getenv("ISO_DATADIR", "./isochrones")
+centers_filename <- Sys.getenv("CENTERS_FILENAME", "./ctsa_centers.csv")
+output_filename <- Sys.getenv("OUTPUT_FILENAME", "./output.csv")
+
 ## for interactive testing
 ## opt <- docopt::docopt(doc, args = 'test/my_address_file_geocoded.csv')
 
-centers <- readr::read_csv('ctsa_centers.csv')
-# selected_site <- opt$site
-
-# d <- readr::read_csv("patients.csv")
-
-# if (! selected_site %in% centers$abbreviation){
-#  stop('site argument is invalid or missing; please consult documentation for details', call. = FALSE)
-# }
-
-message("reading input file...")
-d <- dht::read_lat_lon_csv("patients.csv", nest_df = T, sf = T, project_to_crs = 5072)
-
-dht::check_for_column(d$raw_data, "lat", d$raw_data$lat)
-dht::check_for_column(d$raw_data, "lon", d$raw_data$lon)
-
-# FIXME:
-
-
-library(sf)
-
-# lapply(centers, function(selected_site) 
-selected_site <- "liberty"
-{
-
-      
-     message('loading isochrone shape file...')
-     isochrones <- readRDS(glue::glue("isochrones/{selected_site}_isochrones.rds")) # 5072 projection
-
-     ## add code here to calculate geomarkers
-     message('finding drive time for each point...')
-     # d$dist[selected_site]
-     dd<- suppressWarnings( st_join(d$d, isochrones, largest = TRUE) ) %>% 
-       mutate(drive_time = ifelse(!is.na(drive_time), as.character(drive_time), "> 60"))
-
-     message('finding distance (m) for each point...')
-
-     centers <- centers %>% 
-        filter(abbreviation == selected_site) %>% 
-        st_as_sf(coords = c('lon', 'lat'), crs = 4326) %>%
-        st_transform(5072)
-
-     d$d$distance <-
-        st_distance(centers,
-              d$d,
-              by_element = TRUE)
-}
-
-# now compute the minimal distances for each patient
-#  d$dist[selected_size][]
-       
-## merge back on .row after unnesting .rows into .row
-dht::write_geomarker_file(d = d$d, 
-                          raw_data = d$raw_data, 
-                          filename = opt$filename,
-                          argument = opt$site)
-
+centers <- readr::read_csv(centers_filename) %>% arrange(abbreviation)
+  
+d <- dht::read_lat_lon_csv(opt$filename, nest_df = T, sf = T, project_to_crs = 5072)
+isochrones <- readRDS(glue::glue(paste0(iso_dir,"/isochrones.rds")))
+dx<-sapply(isochrones, function(x) { st_join(d$d, x,largest = TRUE)$value })
+df<-as.data.frame(dx)
+# colnames(df)[apply(df,1,which.max)]
+min_centers <- centers$abbreviation[apply(df,1,which.min)]
+output <- cbind(d$raw_data,min_centers)
+write.csv(output, file=output_filename)

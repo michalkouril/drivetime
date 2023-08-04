@@ -1,5 +1,6 @@
 # ignore everything
 # **
+isochrones-*
 
 # except what we need
 # !/renv.lock

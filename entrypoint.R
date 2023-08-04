@@ -14,7 +14,7 @@ doc <- "
 
 opt <- docopt::docopt(doc)
 
-iso_dir <- Sys.getenv("ISO_DATADIR", "./isochrones")
+iso_filename <- Sys.getenv("ISO_FILENAME", "./isochrones.rds")
 centers_filename <- Sys.getenv("CENTERS_FILENAME", "./ctsa_centers.csv")
 output_filename <- Sys.getenv("OUTPUT_FILENAME", "./output.csv")
 
@@ -24,10 +24,15 @@ output_filename <- Sys.getenv("OUTPUT_FILENAME", "./output.csv")
 centers <- readr::read_csv(centers_filename) %>% arrange(abbreviation)
   
 d <- dht::read_lat_lon_csv(opt$filename, nest_df = T, sf = T, project_to_crs = 5072)
-isochrones <- readRDS(glue::glue(paste0(iso_dir,"/isochrones.rds")))
+isochrones <- readRDS(glue::glue(iso_filename))
 dx<-sapply(isochrones, function(x) { st_join(d$d, x,largest = TRUE)$value })
 df<-as.data.frame(dx)
 # colnames(df)[apply(df,1,which.max)]
-min_centers <- centers$abbreviation[apply(df,1,which.min)]
+
+mins <- apply(df,1,which.min)
+not_found <- length(centers$abbreviation)+1
+mins[is.na(mins == 0)]<-not_found
+min_centers <- centers$abbreviation[unlist(mins)]
+
 output <- cbind(d$raw_data,min_centers)
 write.csv(output, file=output_filename)

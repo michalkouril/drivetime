@@ -25,7 +25,7 @@ centers <- readr::read_csv(centers_filename) %>% arrange(abbreviation)
   
 d <- dht::read_lat_lon_csv(opt$filename, nest_df = T, sf = T, project_to_crs = 5072)
 isochrones <- readRDS(glue::glue(iso_filename))
-dx<-sapply(isochrones, function(x) { st_join(d$d, x,largest = TRUE)$value })
+dx<-sapply(isochrones, function(x) { st_join(d$d, x,largest = TRUE)$drive_time })
 df<-as.data.frame(dx)
 # colnames(df)[apply(df,1,which.max)]
 

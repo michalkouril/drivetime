@@ -8,11 +8,20 @@ withr::with_message_sink("/dev/null", library(tidyr))
 withr::with_message_sink("/dev/null", library(sf))
 
 doc <- "
-      Usage:
-      entrypoint.R <filename>
-      "
+Usage:
+  entrypoint.R [--shiny] [<filename>]
+  entrypoint.R (-h | --help)
+   
+Options:
+  -h --help     Show this screen.
+  --shiny       Start shiny server on port 3838.
+"
 
 opt <- docopt::docopt(doc)
+
+if (opt$shiny) {
+  shiny::runApp(appDir="shiny",port=3838)
+}
 
 iso_filename <- Sys.getenv("ISO_FILENAME", "./isochrones.rds")
 centers_filename <- Sys.getenv("CENTERS_FILENAME", "./ctsa_centers.csv")
